@@ -5,81 +5,41 @@
 # Projeto 4
 ####################################################
 
-
-#esta é a camada superior, de aplicação do seu software de comunicação serial UART.
-#para acompanhar a execução e identificar erros, construa prints ao longo do código! 
-
-
 from timeit import repeat
 from enlace import *
 import time
 import numpy as np
 from utils import *
 
-# voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
-#   para saber a sua porta, execute no terminal :
-#   python -m serial.tools.list_ports
-# se estiver usando windows, o gerenciador de dispositivos informa a porta
-
-#use uma das 3 opcoes para atribuir à variável a porta usada
-serialName = "/dev/ttyACM1"           # Ubuntu (variacao de)
-#serialName = "/dev/tty.usbmodem1411" # Mac    (variacao de)
-# serialName = "COM10"                  # Windows(variacao de)
-
-
-# HEAD - serviria para passar informações da "mensagem" que está chegando, protocolo. Escreve os metadados
-"""
-    Informações que vão estar no 10Bytes do Head
-
-    1 - [mensagem,erro, img, conectar] Pergunta ?
-    2 -  Resposta Principal  Verificação do HandShake
-    3 - Número de Bytes do PayLoad
-
-    4 - Número do Pacote
-    5 - Número total de pacotes
-    6 -  Dizer que a transmissão foi um sucesso
-
-    7 -  placeHolder
-    8 -  placeHolder
-    9 - placeHolder
-    10 -  placeHolder 
-"""
-
-# Payload - dados principais que serão enviados
-
-
-#EOP - Sinal de finalização do datagrama
-"""
-
-    Bytes do datagrama
-
-    1 - \xAA
-    2 - \xAA
-    3 - \xAA 
-    4 - \xAA 
+#   python -m serial.tools.list_ports (IDENTIFICAR PORTA COM)
 
 """
+    h0 - tipo de mensagem
+        1 - handshake inicial
 
-
-# ======== TASK =======
+    h1 - identificador do servidor para o qual as mensagens serão enviadas
+    h2 - livre
+    h3 - número total de pacotes do arquivo
+    h4 - número do pacote sendo enviado
+    h5 - se tipo for handshake: id do arquivo (crie um)
+         se tipo for dados: tamanho do payload
+    h6 - pacote solicitado para recomeço quando a erro no envio.
+    h7 - último pacote recebido com sucesso.
+    h8 - h9 - CRC (Por ora deixe em branco. Fará parte do projeto 5)
+    PAYLOAD - variável entre 0 e 114 bytes. Reservado à transmissão dos arquivos.
+    EOP - 4 bytes: 0xAA 0xBB 0xCC 0xDD
 """
-    1 - Funcão para verificar o HandShake ENRICCO
-    4- Função que verifica se o EOP está no local correto (4 últimos bytes) ENRICCO
-    5- Função que reagrupa os bytes e devolve para o cliente que a transmissão foi um sucesso LINK
-    2 - Função para montar o Payload LINK ------------------
-    3- Função que verifica se a ordem está correta LINK ------------------
 
-"""
+serialName = "/dev/tty.usbmodem1411"
 
 
 def main():
     try:
-        print("Iniciou o main")
         com1 = enlace(serialName); com1.enable()
-        
         print("Abriu a comunicação")
-        img = 'projeto3/img/Capturar2.PNG'; img_bin = open(img,'rb').read()
-        payloads_list = monta_payload(img_bin) # Lista com a imagem divida em varios payloads
+
+        img = 'projeto4/img/batman.png'
+        payloads_list = monta_payload(img) # Lista com a imagem divida em varios payloads
         HEAD_handshake = bytes([4,0,0,0,len(payloads_list),0,0,0,0,0])
         handshake_client = np.asarray(HEAD_handshake+EOP)
 
