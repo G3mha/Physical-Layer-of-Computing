@@ -1,72 +1,92 @@
 #####################################################
 # Camada Física da Computação
-#Carareto
-#11/08/2022
-#Aplicação
+# Enricco Gemha
+# 15/09/2022
+# Projeto 4
 ####################################################
 
 
-#esta é a camada superior, de aplicação do seu software de comunicação serial UART.
-#para acompanhar a execução e identificar erros, construa prints ao longo do código! 
-
-
-from operator import truediv
+from itertools import count
 from enlace import *
+from utils import *
 import time
 import numpy as np
-from utils import *
 
-# voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
-#   para saber a sua porta, execute no terminal :
-#   python -m serial.tools.list_ports
-# se estiver usando windows, o gerenciador de dispositivos informa a porta
+#   python -m serial.tools.list_ports (communication port label)
 
-#use uma das 3 opcoes para atribuir à variável a porta usada
-serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
-#serialName = "/dev/tty.usbmodem1411" # Mac    (variacao de)
-# serialName = "COM8"                  # Windows(variacao de)
-
-
-# HEAD - serviria para passar informações da "mensagem" que está chegando, protocolo. Escreve os metadados
-"""
-    Informações que vão estar no 10Bytes do Head
-
-    1 - [mensagem,erro, img, conectar] Pergunta ? -> b'\06' = tamanho do payload incorreto; Enviar próximo b'\x07'
-    2 -  Resposta Principal  Verificação do HandShake
-    3 - Número de Bytes do PayLoad
-
-    4 - placeHolder
-    5 - placeHolder
-    6 -  placeHolder
-    7 -  placeHolder
-    8 -  placeHolder
-    9 - placeHolder
-    10 -  placeHolder 
-"""
-
-# Payload - dados principais que serão enviados
-
-
-#EOP - Sinal de finalização do datagrama
-"""
-
-    Bytes do datagrama
-
-    1 - \xAA
-    2 - \xAA
-    3 - \xAA 
-    4 - \xAA 
-
-"""
+serial_name = "/dev/tty.usbmodem1411"
+msg_server = Message('no_img')
+verifier = Verifier(from_server=False)
 
 
 def main():
     try:
-        com1 = enlace(serialName); com1.enable() # Ativa comunicacao. Inicia os threads e a comunicação serial
+        msg_server.set_msg_type(2)
+        msg_server.set_HEAD()
+        pkg_handshake_from_server = msg_server.make_pkg()
 
-        print("esperando 1 byte de sacrifício")
+        com1 = enlace(serial_name); com1.enable(); print("Abriu a comunicação")
         rxBuffer, _ = com1.getData(1); com1.rx.clearBuffer(); time.sleep(.1)
         print('1 byte de sacrifício recebido. Limpou o buffer')
+
+        idle = True
+        while idle:
+            if not(com1.rx.getIsEmpty()):
+                handshake_from_client, _ = com1.getData(14)
+                handshake_is_correct = verifier.verify_handshake(handshake_from_client)
+                if handshake_is_correct:
+                    print("Handshake está correto."); idle = False
+            time.sleep(1)
+        com1.sendData(pkg_handshake_from_server); time.sleep(.1)
+        
+        img_received = b''
+        
+        counter = 1
+        number_of_packages = handshake_from_client[3]
+        while counter <= number_of_packages:
+            timer1 = Timer(2)
+            timer2 = Timer(20)
+            while True:
+                pkg_type3 = [0]
+                if not(com1.rx.getIsEmpty()):
+                    pkg_type3, _ = com1.getData(14)
+                pkg_is_type3 = verifier.verify_pkg_type3(pkg_type3)
+                if not(pkg_is_type3):
+                    time.sleep(1)
+                    if timer2.is_timeout():
+                        msg_server.set_msg_type(5)
+                        msg_server.set_HEAD()
+                        pkg_type5 = msg_server.make_pkg()
+                        com1.sendData(pkg_type5); time.sleep(.1)
+                        print('Comunicação encerrada'); idle = True; com1.disable()
+                    if timer1.is_timeout():
+                        timer1.reset()
+                    continue
+                if pkg_is_type3:
+                    eop_is_correct = verifier.verify_eop(pkg_type3)
+                    order_is_correct = (counter == pkg_type3[4])
+                    if eop_is_correct and order_is_correct:
+                        msg_server.set_msg_type(4)
+                        msg_server.set_last_pkg_sucesfully_received(counter)
+                        msg_server.set_HEAD()
+                        pkg_type4 = msg_server.make_pkg()
+                        com1.sendData(pkg_type4); time.sleep(.1)
+                        counter += 1
+                        img_received += payload_client # pegando e guardando as informações do payload
+                        # colocar aqui o payload na lista de payloads
+                        break
+                    if not(eop_is_correct) or not(order_is_correct):
+                        msg_server.set_msg_type(6)
+                        msg_server.set_HEAD(expected_pkg_number=counter)
+                        pkg_type6 = msg_server.make_pkg()
+                        com1.sendData(pkg_type6); time.sleep(.1)
+                        break
+
+
+        print('Transmissão bem sucedida'); com1.disable()
+
+
+
 
         HEAD_handshake_client, _ = com1.getData(10); time.sleep(.1)
         is_handshake_correct = verifica_handshake(HEAD_handshake_client[0:2], False)

@@ -6,7 +6,9 @@ from math import ceil
 class Message():
     def __init__(self, img):
         self.EOP = b'\xAA\xBB\xCC\xDD'
-        self.make_list_payload(img)
+        if img != 'no_img':
+            self.img = img
+            self.make_list_payload()
 
     def make_list_payload(self):
         img_bin = open(self.img,'rb').read()
@@ -80,6 +82,18 @@ class Verifier():
                 return True
             return False
     
+    def verify_EOP(self, pkg):
+        if pkg[-4:] == self.EOP:
+            return True
+        return False
+
+    def verify_pkg_type3(self, pkg_type3):
+        expected = bytes([3])
+        received = pkg_type3[0]
+        if received == expected:
+            return True
+        return False
+    
     def verify_pkg_type4(self, pkg_type4):
         expected = bytes([4])
         received = pkg_type4[0]
@@ -110,18 +124,6 @@ class Timer():
 
 
 
-def verifica_eop(pacote, head):
-    """
-    Função que verifica se o payload é o mesmo que o esperado e se o pacote está correto
-    """
-    # head = pacote[:10]
-    tamanho = head[2]
-    eop = pacote[10+tamanho:]
-    if eop == b'\xAA\xAA\xAA\xAA':
-        print('Payload recebido integramente. Esperando novo pacote')
-        return True
-    print('Erro no EOP enviado. Tente novamente.')
-    return False
 
 def verifica_ordem(recebido, numero_do_pacote_atual):
     """

@@ -5,14 +5,11 @@
 # Projeto 4
 ####################################################
 
-from cgitb import reset
-from itertools import count
-from pyexpat.errors import messages
-from timeit import repeat
+
 from enlace import *
+from utils import *
 import time
 import numpy as np
-from utils import *
 
 #   python -m serial.tools.list_ports (communication port label)
 
@@ -24,9 +21,9 @@ verifier = Verifier(from_server=True)
 
 def main():
     try:
-        msg_client.set_msg_type(1) # 1 = handshake
+        msg_client.set_msg_type(1)
         msg_client.set_HEAD()
-        pkg_handshake_client = msg_client.make_pkg()
+        pkg_handshake_from_client = msg_client.make_pkg()
 
         com1 = enlace(serial_name); com1.enable(); print("Abriu a comunicação")
 
@@ -35,7 +32,7 @@ def main():
             com1.rx.clearBuffer()
 
             com1.sendData(b'00'); time.sleep(.1) # sacrifice bit
-            com1.sendData(pkg_handshake_client); time.sleep(.1) # handshake
+            com1.sendData(pkg_handshake_from_client); time.sleep(.1) # handshake
             
             time.sleep(5)
 
