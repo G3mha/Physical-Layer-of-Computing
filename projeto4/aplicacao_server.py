@@ -134,13 +134,13 @@ def main():
         f.close() # fecha o arquivo de imagem
 
         print("-------------------------\nComunicação encerrada\n-------------------------"); com1.disable()
-        
+
 
     except Exception as erro:
         print("ops! :-\\")
         print(erro)
         com1.disable()
-        
+
 
     #so roda o main quando for executado do terminal ... se for chamado dentro de outro modulo nao roda
 if __name__ == "__main__":

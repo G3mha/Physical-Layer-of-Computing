@@ -2,29 +2,54 @@ import time
 import numpy as np
 from math import ceil
 
-HEAD_handshake_server = bytes([5,1,0,0,0,0,0,0,0,0])
-
-EOP = bytes([170,170,170,170]) # Montando o EOP
 
 class Message():
     def __init__(self):
         self.EOP = b'\xAA\xBB\xCC\xDD'
 
-    def define_type(self, type):
-        self.type = type
+    def set_msg_type(self, msg_type):
+        self.msg_type = msg_type
 
-    def make_package(self):
-        package = self.head + self.payload + self.eop
-        return package
+    def set_amount_of_pkgs(self, amount_of_pkgs):
+        self.amount_of_pkgs = amount_of_pkgs
+    
+    def set_last_pkg_sucesfully_received(self, last_pkg_sucesfully_received):
+        self.last_pkg_sucesfully_received = last_pkg_sucesfully_received
+
+    def set_HEAD(self, current_pkg_number=0, current_payload_size=0, expected_pkg_number=0):
+
+        if self.msg_type == 1: # handshake from client to server (question)
+            server_ID = 9 # server ID attached to message
+            list_HEAD = [self.msg_type,0,0,self.amount_of_pkgs,0,server_ID,0,0,0,0]
+        
+        if self.msg_type == 2: # handshake from server to client (answer)
+            list_HEAD = [self.msg_type,0,0,0,0,0,0,0,0,0]
+
+        if self.msg_type == 3: # data from client to server (payload not 0)
+            list_HEAD = [self.msg_type,0,0,self.amount_of_pkgs,current_pkg_number,current_payload_size,0,0,0,0]
+
+        if self.msg_type == 4: # payload check from server to client (sucessfully received)
+            list_HEAD = [self.msg_type,0,0,0,0,0,0,self.last_pkg_sucesfully_received,0,0]
+
+        if self.msg_type == 5: # timeout connection from any to other (end communication)
+            list_HEAD = [self.msg_type,0,0,0,0,0,0,0,0,0]
+
+        if self.msg_type == 6: # error on package from server to client (missing bytes or incorrect format or unexpected package)
+            list_HEAD = [self.msg_type,0,0,0,0,0,expected_pkg_number,0,0,0]
+
+        self.HEAD = bytes(list_HEAD)
+
+    def set_list_payload(self, list_payload):
+        self.list_payload = list_payload
+
+    def make_pkg(self):
+        payload = self.list_payload[self.current_pkg_number]
+        pkg = self.HEAD + payload + self.EOP
+        return pkg
 
 
-# def make_HEAD(is_client, HEAD_type):
-#     if is_client:
-#         if HEAD_type == 'handshake':
-#             HEAD = bytes([4,0,0,0,len(payloads_list),0,0,0,0,0])
-#     return HEAD
 
-def atualiza_tempo(tempo_ref):
+def timer(tempo_ref):
     tempo_atual = float(time.time())
     referencia = float(tempo_atual-tempo_ref)
     return referencia 
