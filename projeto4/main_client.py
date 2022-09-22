@@ -5,6 +5,8 @@
 # Projeto 4
 ####################################################
 
+from cgitb import reset
+from itertools import count
 from pyexpat.errors import messages
 from timeit import repeat
 from enlace import *
@@ -16,71 +18,75 @@ from utils import *
 
 serial_name = "/dev/tty.usbmodem1411"
 img = 'projeto4/img/batman.png'
+msg_client = Message(img)
+verifier = Verifier(from_server=True)
 
 
 def main():
     try:
-        messages_client = Message(img)
-        messages_client.set_msg_type(1) # 1 = handshake
-        messages_client.set_HEAD()
-        handshake_client = messages_client.make_pkg()
-        
+        msg_client.set_msg_type(1) # 1 = handshake
+        msg_client.set_HEAD()
+        pkg_handshake_client = msg_client.make_pkg()
+
         com1 = enlace(serial_name); com1.enable(); print("Abriu a comunicação")
-        
-        com1.sendData(b'00'); time.sleep(.1) # sacrifice bit
-        com1.sendData(handshake_client); time.sleep(.1)
-        try_connection = 'S'
 
-        start_sending_pkgs = False
-        while start_sending_pkgs == False:
+        begin = False
+        while not(begin):
             com1.rx.clearBuffer()
-            timer = time.time()
-            while com1.rx.getIsEmpty() and (atualiza_tempo(timer) < 5):
-                pass
-            if com1.rx.getIsEmpty():
-                try_connection = str(input('Servidor inativo. Tentar novamente? S/N: '))
-                if try_connection == 'S':
-                    com1.sendData(b'00'); time.sleep(.1) # bit de sacrificio
-                    com1.sendData(handshake_client); time.sleep(.1)
-                if try_connection == 'N':
-                    print('Servidor inativo. Tente novamente mais tarde.'); com1.disable(); return
-            else:
-                handshake_server, _ = com1.getData(14)
-                is_handshake_correct = verifica_handshake(handshake_server, True)
-                if not is_handshake_correct:
-                    print('Handshake diferente do esperado. Tente novamente mais tarde.'); com1.disable(); return
-                if is_handshake_correct:
-                    print("Handshake vindo do server está correto."); start_sending_pkgs = True
 
-
-        current_package = 1
-        for payload in payloads_list: 
-            HEAD_content_client = bytes([3,0,len(payload),current_package,len(payloads_list),0,0,0,0,0]) 
-            package = HEAD_content_client + payload + EOP
-            com1.sendData(np.asarray(package))
-            current_package += 1
+            com1.sendData(b'00'); time.sleep(.1) # sacrifice bit
+            com1.sendData(pkg_handshake_client); time.sleep(.1) # handshake
             
-            feedback_to_client, _ = com1.getData(1); time.sleep(.1)
-            if feedback_to_client == 6:
-                print(f'Tamanho do payload incorreto no pacote {current_package}. Reenvie o pacote.'); com1.disable(); return
-                # implementar no proximo projeto
-            if feedback_to_client == 7:
-                print(f'Pacote {current_package} enviado com sucesso.')
-            com1.rx.clearBuffer(); time.sleep(.1)
+            time.sleep(5)
 
-        HEAD_final_server, _ = com1.getData(10) # Recebendo o HEAD do server
-        is_transmission_correct = (HEAD_final_server[5] == 1)
-        EOP_final_server, _ = com1.getData(4) # Recebendo o EOP do server
-        package_final_server = HEAD_final_server + EOP_final_server
-        is_eop_correct = verifica_eop(package_final_server, HEAD_final_server)
+            if com1.rx.getIsEmpty():
+                continue
 
-        if not is_transmission_correct:
-            print('Erro no envio dos pacotes. Tente novamente.')
-        if is_transmission_correct and is_eop_correct:
-            print('Transmissão bem sucedida')
+            handshake_from_server, _ = com1.getData(14)
+            handshake_is_correct = verifier.verify_handshake(handshake_from_server)
+            if handshake_is_correct:
+                print("Handshake está correto."); begin = True
+
+        counter = 1
+        number_of_packages = msg_client.amount_of_packages
+        while counter <= number_of_packages:
+            msg_client.set_msg_type(3)
+            msg_client.set_HEAD(current_pkg_number=counter)
+            pkg_type3 = msg_client.make_pkg()
+            com1.sendData(pkg_type3); time.sleep(.1)
+            timer1 = Timer(5)
+            timer2 = Timer(20)
+            while True:
+                pkg_type4 = [0]
+                if not(com1.rx.getIsEmpty()):
+                    pkg_type4, _ = com1.getData(14)
+                pkg_is_correct = verifier.verify_pkg_type4(pkg_type4)
+                if pkg_is_correct:
+                    counter += 1
+                    break
+                if timer1.is_timeout():
+                    com1.sendData(pkg_type3); time.sleep(.1)
+                    timer1.reset()
+                if timer2.is_timeout():
+                    msg_client.set_msg_type(5)
+                    msg_client.set_HEAD()
+                    pkg_type5 = msg_client.make_pkg()
+                    com1.sendData(pkg_type5); print("Timeout. Comunição encerrada"); com1.disable()
+                pkg_type6 = [0]
+                if not(com1.rx.getIsEmpty()):
+                    pkg_type6, _ = com1.getData(14)
+                if not(verifier.verify_pkg_type6(pkg_type6)):
+                    continue
+                counter = pkg_type6[6]
+                msg_client.set_msg_type(3)
+                msg_client.set_HEAD(current_pkg_number=counter)
+                pkg_type3 = msg_client.make_pkg()
+                com1.sendData(pkg_type3); time.sleep(.1)
+                timer1.reset()
+                timer2.reset()
     
-        print("-------------------------\nComunicação encerrada\n-------------------------"); com1.disable()
-        
+        print('Transmissão bem sucedida'); com1.disable()
+
     except Exception as erro:
         print("ops! :-\\")
         print(erro)

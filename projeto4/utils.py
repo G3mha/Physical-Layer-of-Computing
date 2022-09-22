@@ -23,6 +23,7 @@ class Message():
             payloads.append(payload)
         self.list_payload = payloads
         self.amount_of_pkgs = len(payloads)
+        self.current_pkg_number = 0
 
     def set_msg_type(self, msg_type):
         self.msg_type = msg_type
@@ -30,8 +31,9 @@ class Message():
     def set_last_pkg_sucesfully_received(self, last_pkg_sucesfully_received):
         self.last_pkg_sucesfully_received = last_pkg_sucesfully_received
 
-    def set_HEAD(self, current_pkg_number=0, current_payload_size=0, expected_pkg_number=0):
+    def set_HEAD(self, current_pkg_number=0, expected_pkg_number=0):
         self.current_pkg_number = current_pkg_number
+        self.current_payload_size = self.list_payload[current_pkg_number-1]
 
         if self.msg_type == 1: # handshake from client to server (question)
             server_ID = 9 # server ID attached to message
@@ -41,7 +43,7 @@ class Message():
             list_HEAD = [self.msg_type,0,0,0,0,0,0,0,0,0]
 
         if self.msg_type == 3: # data from client to server (payload not 0)
-            list_HEAD = [self.msg_type,0,0,self.amount_of_pkgs,current_pkg_number,current_payload_size,0,0,0,0]
+            list_HEAD = [self.msg_type,0,0,self.amount_of_pkgs,current_pkg_number,self.current_payload_size,0,0,0,0]
 
         if self.msg_type == 4: # payload check from server to client (sucessfully received)
             list_HEAD = [self.msg_type,0,0,0,0,0,0,self.last_pkg_sucesfully_received,0,0]
@@ -58,6 +60,40 @@ class Message():
         payload = self.list_payload[self.current_pkg_number]
         pkg = self.HEAD + payload + self.EOP
         return np.asarray(pkg)
+    
+class Verifier():
+    def __init__(self, from_server):
+        self.from_server = from_server
+
+    def verify_handshake(self, handshake):
+        if self.from_server:
+            expected = bytes([2])
+            received = handshake[0]
+            if received == expected:
+                return True
+            return False
+
+        else: # from client
+            expected = [bytes([1]), bytes([9])]
+            received = [handshake[0], handshake[5]]
+            if received == expected:
+                return True
+            return False
+    
+    def verify_pkg_type4(self, pkg_type4):
+        expected = bytes([4])
+        received = pkg_type4[0]
+        if received == expected:
+            return True
+        return False
+
+    def verify_pkg_type6(self, pkg_type6):
+        expected = bytes([6])
+        received = pkg_type6[0]
+        if received == expected:
+            return True
+        return False
+
 
 class Timer():
     def __init__(self, timeout):
@@ -65,25 +101,14 @@ class Timer():
         self.start_time = time.time()
 
     def is_timeout(self):
-        return (time.time() - self.start_time) >= self.timeout
+        return (time.time() - self.start_time) > self.timeout
+
+    def reset(self):
+        self.start_time = time.time()
 
 
-def verifica_handshake(head, is_server):
-    """
-    Função que verifica se o handshake é a resposta esperada (SIM)
-    """
-    handshake = head[:2] # primeiro e segundo bytes do head
-    delta_t = 0
-    conferencia = bytes([5,1])
-    if not is_server:
-        conferencia = bytes([4,0])
-    while delta_t <= 5: # loop para gerar o timeout
-        tempo_atual = float(time.time())
-        if handshake == conferencia: # 5 é a mensagem de handshake e 1 é a resposta positiva
-            print('Handshake realizado com sucesso')
-            return True
-        delta_t = atualiza_tempo(tempo_atual)
-    return False
+
+
 
 def verifica_eop(pacote, head):
     """
