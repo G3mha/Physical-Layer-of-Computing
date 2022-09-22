@@ -47,12 +47,13 @@ class Message():
         pkg = self.HEAD + payload + self.EOP
         return pkg
 
+class Timer():
+    def __init__(self, timeout):
+        self.timeout = timeout
+        self.start_time = time.time()
 
-
-def timer(tempo_ref):
-    tempo_atual = float(time.time())
-    referencia = float(tempo_atual-tempo_ref)
-    return referencia 
+    def is_timeout(self):
+        return (time.time() - self.start_time) >= self.timeout
 
 def verifica_handshake(head, is_server):
     """
