@@ -4,19 +4,34 @@ from math import ceil
 
 
 class Message():
-    def __init__(self):
+    def __init__(self, img):
         self.EOP = b'\xAA\xBB\xCC\xDD'
+        self.make_list_payload(img)
+
+    def make_list_payload(self):
+        img_bin = open(self.img,'rb').read()
+        img_size = len(img_bin)
+        pkgs = ceil(img_size/114)
+        payloads = []
+        for i in range(pkgs):
+            if i == (pkgs-1):
+                payload = img_bin[114*i:img_size]
+                print('tamanho do ultimo payload ' , len(payload))
+            else:
+                payload = img_bin[114*i:(i+1)*114]
+                print('tamanho dos payloads intermediarios : ',len(payload))
+            payloads.append(payload)
+        self.list_payload = payloads
+        self.amount_of_pkgs = len(payloads)
 
     def set_msg_type(self, msg_type):
         self.msg_type = msg_type
 
-    def set_amount_of_pkgs(self, amount_of_pkgs):
-        self.amount_of_pkgs = amount_of_pkgs
-    
     def set_last_pkg_sucesfully_received(self, last_pkg_sucesfully_received):
         self.last_pkg_sucesfully_received = last_pkg_sucesfully_received
 
     def set_HEAD(self, current_pkg_number=0, current_payload_size=0, expected_pkg_number=0):
+        self.current_pkg_number = current_pkg_number
 
         if self.msg_type == 1: # handshake from client to server (question)
             server_ID = 9 # server ID attached to message
@@ -39,13 +54,10 @@ class Message():
 
         self.HEAD = bytes(list_HEAD)
 
-    def set_list_payload(self, list_payload):
-        self.list_payload = list_payload
-
     def make_pkg(self):
         payload = self.list_payload[self.current_pkg_number]
         pkg = self.HEAD + payload + self.EOP
-        return pkg
+        return np.asarray(pkg)
 
 class Timer():
     def __init__(self, timeout):
@@ -54,6 +66,7 @@ class Timer():
 
     def is_timeout(self):
         return (time.time() - self.start_time) >= self.timeout
+
 
 def verifica_handshake(head, is_server):
     """
@@ -97,25 +110,6 @@ def verifica_ordem(recebido, numero_do_pacote_atual):
     return False
 
 
-def monta_payload(img):
-    """
-    Lembremos que o payload tem tamanho máximo de 114 bytes, então se uma informação tiver um tamanho maior
-    terá que enviar pacotes de 114 ou menos até que a informação inteira seja recebida
-    """
-    img_bin = open(img,'rb').read()
-    tamanho = len(img_bin)
-    pacotes = ceil(tamanho/114)
-    payloads = []
-    for i in range(pacotes):
-        if i == (pacotes-1):
-            payload = img_bin[114*i:tamanho]
-            print('tamanho do ultimo payload ' , len(payload))
-        else:
-            payload = img_bin[114*i:(i+1)*114]
-            print('tamanho dos payloads intermediarios : ',len(payload))
-        payloads.append(payload)
-    return payloads
-
 def reagrupamento(lista_dos_payloads,tamanho_total_da_info, numero_de_pacotes_recebidos):
     """
     Nessa função iremos juntar os payloads dos pacotes recebidos e verificar se o número de pacotes recebidos foi correto 
@@ -130,7 +124,6 @@ def reagrupamento(lista_dos_payloads,tamanho_total_da_info, numero_de_pacotes_re
         return False
         
 def tratar_pacote_recebido(pacote):
-
     tamanho_pacote = len(pacote)
     head = pacote[0:10]
 
@@ -138,22 +131,12 @@ def tratar_pacote_recebido(pacote):
     payload = pacote[10:10+tamanho]
 
     eop = pacote[10+tamanho:len(pacote)]
-    # eop = pacote[tamanho_pacote-4:tamanho_pacote]
 
     return head,payload,eop
     
 
 def retirando_informacoes_do_head(head):
-
-    # tamanho_pacote = len(pacote)
-    # head = pacote[0:10]
-
     tamanho_do_payload = head[2]
     numero_do_pacote = head[3]
     numero_total_de_pacotes = head[4]
-    # payload = pacote[10:10+tamanho]
-
-    # eop = pacote[10+tamanho:len(pacote)]
-    # eop = pacote[tamanho_pacote-4:tamanho_pacote]
-
     return tamanho_do_payload,numero_do_pacote, numero_total_de_pacotes

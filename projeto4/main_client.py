@@ -5,52 +5,34 @@
 # Projeto 4
 ####################################################
 
+from pyexpat.errors import messages
 from timeit import repeat
 from enlace import *
 import time
 import numpy as np
 from utils import *
 
-#   python -m serial.tools.list_ports (IDENTIFICAR PORTA COM)
+#   python -m serial.tools.list_ports (communication port label)
 
-"""
-    h0 - tipo de mensagem
-        1 - handshake inicial
-
-    h1 - identificador do servidor para o qual as mensagens serão enviadas
-    h2 - livre
-    h3 - número total de pacotes do arquivo
-    h4 - número do pacote sendo enviado
-    h5 - se tipo for handshake: id do arquivo (crie um)
-         se tipo for dados: tamanho do payload
-    h6 - pacote solicitado para recomeço quando a erro no envio.
-    h7 - último pacote recebido com sucesso.
-    h8 - h9 - CRC (Por ora deixe em branco. Fará parte do projeto 5)
-    PAYLOAD - variável entre 0 e 114 bytes. Reservado à transmissão dos arquivos.
-    EOP - 4 bytes: 0xAA 0xBB 0xCC 0xDD
-"""
-
-serialName = "/dev/tty.usbmodem1411"
+serial_name = "/dev/tty.usbmodem1411"
+img = 'projeto4/img/batman.png'
 
 
 def main():
     try:
-        com1 = enlace(serialName); com1.enable()
-        print("Abriu a comunicação")
-
-        img = 'projeto4/img/batman.png'
-        payloads_list = monta_payload(img) # Lista com a imagem divida em varios payloads
-        HEAD_handshake = bytes([4,0,0,0,len(payloads_list),0,0,0,0,0])
-        handshake_client = np.asarray(HEAD_handshake+EOP)
-
-
-        com1.sendData(b'00'); time.sleep(.1) # bit de sacrificio
+        messages_client = Message(img)
+        messages_client.set_msg_type(1) # 1 = handshake
+        messages_client.set_HEAD()
+        handshake_client = messages_client.make_pkg()
+        
+        com1 = enlace(serial_name); com1.enable(); print("Abriu a comunicação")
+        
+        com1.sendData(b'00'); time.sleep(.1) # sacrifice bit
         com1.sendData(handshake_client); time.sleep(.1)
-
-
         try_connection = 'S'
 
-        while True:
+        start_sending_pkgs = False
+        while start_sending_pkgs == False:
             com1.rx.clearBuffer()
             timer = time.time()
             while com1.rx.getIsEmpty() and (atualiza_tempo(timer) < 5):
@@ -68,7 +50,7 @@ def main():
                 if not is_handshake_correct:
                     print('Handshake diferente do esperado. Tente novamente mais tarde.'); com1.disable(); return
                 if is_handshake_correct:
-                    print("Handshake vindo do server está correto."); break
+                    print("Handshake vindo do server está correto."); start_sending_pkgs = True
 
 
         current_package = 1
