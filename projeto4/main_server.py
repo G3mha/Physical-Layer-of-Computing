@@ -46,7 +46,7 @@ def main():
         while counter <= number_of_packages:
             timer1 = Timer(2)
             timer2 = Timer(20)
-            while True:
+            while not(com1.rx.getIsEmpty()):
                 pkg_type3, payload_from_pkg_type3 = get_pkg_type3(com1)
                 print(pkg_type3)
                 pkg_is_type3 = verifier.verify_pkg_type3(pkg_type3)

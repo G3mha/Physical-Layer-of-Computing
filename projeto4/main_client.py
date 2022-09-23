@@ -52,13 +52,12 @@ def main():
             com1.sendData(pkg_type3); time.sleep(.1)
             timer1 = Timer(5)
             timer2 = Timer(20)
-            while True:
+            while not(com1.rx.getIsEmpty()):
                 pkg_type4, _ = com1.getData(14)
                 print(pkg_type4)
                 pkg_is_correct = verifier.verify_pkg_type4(pkg_type4)
                 if pkg_is_correct:
                     counter += 1
-                    print(123456)
                     break
                 if timer1.is_timeout():
                     com1.sendData(pkg_type3); time.sleep(.1)
