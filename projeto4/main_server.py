@@ -27,7 +27,7 @@ def main():
         pkg_handshake_from_server = msg_server.make_pkg()
 
         rxBuffer, _ = com1.getData(1); com1.rx.clearBuffer(); time.sleep(.1)
-        print('1 byte de sacrifício recebido. Limpou o buffer')
+        print('Limpou o buffer')
 
         idle = True
         while idle:
@@ -47,9 +47,8 @@ def main():
             timer1 = Timer(2)
             timer2 = Timer(20)
             while True:
-                pkg_type3 = [0]
-                if not(com1.rx.getIsEmpty()):
-                    pkg_type3, payload_from_pkg_type3 = get_pkg_type3(com1)
+                pkg_type3, payload_from_pkg_type3 = get_pkg_type3(com1)
+                print(pkg_type3)
                 pkg_is_type3 = verifier.verify_pkg_type3(pkg_type3)
                 if not(pkg_is_type3):
                     time.sleep(1)
@@ -58,37 +57,36 @@ def main():
                         msg_server.set_HEAD()
                         pkg_type5 = msg_server.make_pkg()
                         com1.sendData(pkg_type5); time.sleep(.1)
-                        print('Comunicação encerrada'); idle = True; com1.disable()
+                        print('Comunicação encerrada.'); idle = True; com1.disable(); return
                     if timer1.is_timeout():
                         timer1.reset()
                     continue
                 if pkg_is_type3:
-                    eop_is_correct = verifier.verify_eop(pkg_type3)
+                    eop_is_correct = verifier.verify_EOP(pkg_type3)
                     order_is_correct = (counter == pkg_type3[4])
+                    print(f'EOP:{eop_is_correct}, Order: {order_is_correct}')
                     if eop_is_correct and order_is_correct:
                         msg_server.set_msg_type(4)
-                        msg_server.set_last_pkg_sucesfully_received(counter)
+                        msg_server.set_last_pkg_sucesfully_received(pkg_type3[4])
                         msg_server.set_HEAD()
                         pkg_type4 = msg_server.make_pkg()
+                        print(counter)
                         com1.sendData(pkg_type4); time.sleep(.1)
                         counter += 1
                         img_received_bin += payload_from_pkg_type3
-                        break
                     if not(eop_is_correct) or not(order_is_correct):
                         msg_server.set_msg_type(6)
                         msg_server.set_HEAD(expected_pkg_number=counter)
                         pkg_type6 = msg_server.make_pkg()
                         com1.sendData(pkg_type6); time.sleep(.1)
-                        break
-
+                    break
+        
+        print(img_received_bin)
         img_received_name = 'projeto4/img/recebido.PNG'
         f = open(img_received_name, 'wb')
         f.write(img_received_bin)
         f.close()
         print('Arquivo recebido integralmente.\nTransmissão bem sucedida'); com1.disable()
-
-
-
 
 
     except Exception as erro:

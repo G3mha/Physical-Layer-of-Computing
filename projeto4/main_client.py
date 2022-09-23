@@ -28,12 +28,11 @@ def main():
 
 
         begin = False
+        com1.sendData(b'00'); time.sleep(.1) # sacrifice bit
         while not(begin):
             com1.rx.clearBuffer()
 
-            com1.sendData(b'00'); time.sleep(.1) # sacrifice bit
             com1.sendData(pkg_handshake_from_client); time.sleep(.1) # handshake
-            
             time.sleep(5)
 
             if com1.rx.getIsEmpty():
@@ -45,7 +44,7 @@ def main():
                 print("Handshake está correto."); begin = True
 
         counter = 1
-        number_of_packages = msg_client.amount_of_packages
+        number_of_packages = msg_client.get_amount_of_pkgs()
         while counter <= number_of_packages:
             msg_client.set_msg_type(3)
             msg_client.set_HEAD(current_pkg_number=counter)
@@ -54,12 +53,12 @@ def main():
             timer1 = Timer(5)
             timer2 = Timer(20)
             while True:
-                pkg_type4 = [0]
-                if not(com1.rx.getIsEmpty()):
-                    pkg_type4, _ = com1.getData(14)
+                pkg_type4, _ = com1.getData(14)
+                print(pkg_type4)
                 pkg_is_correct = verifier.verify_pkg_type4(pkg_type4)
                 if pkg_is_correct:
                     counter += 1
+                    print(123456)
                     break
                 if timer1.is_timeout():
                     com1.sendData(pkg_type3); time.sleep(.1)
@@ -68,7 +67,7 @@ def main():
                     msg_client.set_msg_type(5)
                     msg_client.set_HEAD()
                     pkg_type5 = msg_client.make_pkg()
-                    com1.sendData(pkg_type5); print("Timeout. Comunição encerrada"); com1.disable()
+                    com1.sendData(pkg_type5); print("Timeout. Comunição encerrada"); com1.disable(); return
                 pkg_type6 = [0]
                 if not(com1.rx.getIsEmpty()):
                     pkg_type6, _ = com1.getData(14)
@@ -81,7 +80,7 @@ def main():
                 com1.sendData(pkg_type3); time.sleep(.1)
                 timer1.reset()
                 timer2.reset()
-    
+
         print('Transmissão bem sucedida'); com1.disable()
 
     except Exception as erro:

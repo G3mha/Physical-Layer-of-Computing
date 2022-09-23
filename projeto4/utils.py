@@ -26,7 +26,7 @@ class Message():
                     print('tamanho dos payloads intermediarios : ',len(payload))
                 payloads.append(payload)
             self.list_payload = payloads
-            self.amount_of_pkgs = len(payloads)
+            self.amount_of_pkgs = len(self.list_payload)
         
 
     def set_msg_type(self, msg_type):
@@ -41,7 +41,7 @@ class Message():
             self.current_payload_size = len(self.list_payload[self.current_pkg_number-1])
 
         if self.msg_type == 1: # handshake from client to server (question)
-            server_ID = 9 # server ID attached to message
+            server_ID = 4 # server ID attached to message
             list_HEAD = [self.msg_type,0,0,self.amount_of_pkgs,0,server_ID,0,0,0,0]
         
         if self.msg_type == 2: # handshake from server to client (answer)
@@ -64,24 +64,28 @@ class Message():
     def make_pkg(self):
         payload = b''
         if self.msg_type == 3:
-            payload = self.list_payload[self.current_pkg_number]
+            payload = self.list_payload[self.current_pkg_number-1]
         pkg = self.HEAD + payload + self.EOP
         return np.asarray(pkg)
+
+    def get_amount_of_pkgs(self):
+        return self.amount_of_pkgs
     
 class Verifier():
     def __init__(self, from_server):
         self.from_server = from_server
+        self.EOP = b'\xAA\xBB\xCC\xDD'
 
     def verify_handshake(self, handshake):
         if self.from_server:
-            expected = bytes([2])
+            expected = 2
             received = handshake[0]
             if received == expected:
                 return True
             return False
 
         else: # from client
-            expected = [bytes([1]), bytes([9])]
+            expected = [1, 4]
             received = [handshake[0], handshake[5]]
             if received == expected:
                 return True
@@ -93,21 +97,21 @@ class Verifier():
         return False
 
     def verify_pkg_type3(self, pkg_type3):
-        expected = bytes([3])
+        expected = 3
         received = pkg_type3[0]
         if received == expected:
             return True
         return False
     
     def verify_pkg_type4(self, pkg_type4):
-        expected = bytes([4])
+        expected = 4
         received = pkg_type4[0]
         if received == expected:
             return True
         return False
 
     def verify_pkg_type6(self, pkg_type6):
-        expected = bytes([6])
+        expected = 6
         received = pkg_type6[0]
         if received == expected:
             return True
