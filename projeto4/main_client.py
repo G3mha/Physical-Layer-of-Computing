@@ -6,6 +6,7 @@
 ####################################################
 
 
+from types import NoneType
 from enlace import *
 from utils import *
 import time
@@ -52,13 +53,26 @@ def main():
             com1.sendData(pkg_type3); time.sleep(.1)
             timer1 = Timer(5)
             timer2 = Timer(20)
+            pkg_type4_5_or_6 = None
             while not(com1.rx.getIsEmpty()):
-                pkg_type4, _ = com1.getData(14)
-                print(pkg_type4)
-                pkg_is_correct = verifier.verify_pkg_type4(pkg_type4)
-                if pkg_is_correct:
+                pkg_type4_5_or_6, _ = com1.getData(14)
+                pkg_is_correct_type4 = verifier.verify_pkg_type4(pkg_type4_5_or_6)
+                if pkg_is_correct_type4:
                     counter += 1
                     break
+                pkg_is_correct_type5 = verifier.verify_pkg_type5(pkg_type4_5_or_6)
+                if pkg_is_correct_type5:
+                    print('Server deu timeout.'); com1.disable(); return
+                pkg_is_correct_type6 = verifier.verify_pkg_type5(pkg_type4_5_or_6)
+                if pkg_is_correct_type6:
+                    counter = pkg_type4_5_or_6[6]
+                    msg_client.set_msg_type(3)
+                    msg_client.set_HEAD(current_pkg_number=counter)
+                    pkg_type3 = msg_client.make_pkg()
+                    com1.sendData(pkg_type3); time.sleep(.1)
+                    timer1.reset()
+                    timer2.reset()
+            while com1.rx.getIsEmpty():
                 if timer1.is_timeout():
                     com1.sendData(pkg_type3); time.sleep(.1)
                     timer1.reset()
@@ -67,18 +81,7 @@ def main():
                     msg_client.set_HEAD()
                     pkg_type5 = msg_client.make_pkg()
                     com1.sendData(pkg_type5); print("Timeout. Comunição encerrada"); com1.disable(); return
-                pkg_type6 = [0]
-                if not(com1.rx.getIsEmpty()):
-                    pkg_type6, _ = com1.getData(14)
-                if not(verifier.verify_pkg_type6(pkg_type6)):
-                    continue
-                counter = pkg_type6[6]
-                msg_client.set_msg_type(3)
-                msg_client.set_HEAD(current_pkg_number=counter)
-                pkg_type3 = msg_client.make_pkg()
-                com1.sendData(pkg_type3); time.sleep(.1)
-                timer1.reset()
-                timer2.reset()
+
 
         print('Transmissão bem sucedida'); com1.disable()
 

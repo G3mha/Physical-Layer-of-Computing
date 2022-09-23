@@ -110,6 +110,13 @@ class Verifier():
             return True
         return False
 
+    def verify_pkg_type5(self, pkg_type5):
+        expected = 5
+        received = pkg_type5[0]
+        if received == expected:
+            return True
+        return False
+
     def verify_pkg_type6(self, pkg_type6):
         expected = 6
         received = pkg_type6[0]

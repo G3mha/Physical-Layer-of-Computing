@@ -46,21 +46,17 @@ def main():
         while counter <= number_of_packages:
             timer1 = Timer(2)
             timer2 = Timer(20)
+            pkg_type3 = None
+            entered_1st_while = False
             while not(com1.rx.getIsEmpty()):
+                entered_1st_while = True
                 pkg_type3, payload_from_pkg_type3 = get_pkg_type3(com1)
-                print(pkg_type3)
                 pkg_is_type3 = verifier.verify_pkg_type3(pkg_type3)
                 if not(pkg_is_type3):
                     time.sleep(1)
-                    if timer2.is_timeout():
-                        msg_server.set_msg_type(5)
-                        msg_server.set_HEAD()
-                        pkg_type5 = msg_server.make_pkg()
-                        com1.sendData(pkg_type5); time.sleep(.1)
-                        print('Comunicação encerrada.'); idle = True; com1.disable(); return
-                    if timer1.is_timeout():
-                        timer1.reset()
-                    continue
+                    pkg_is_correct_type5 = verifier.verify_pkg_type5(pkg_type3)
+                    if pkg_is_correct_type5:
+                        print('Client deu timeout.'); com1.disable(); return
                 if pkg_is_type3:
                     eop_is_correct = verifier.verify_EOP(pkg_type3)
                     order_is_correct = (counter == pkg_type3[4])
@@ -70,7 +66,6 @@ def main():
                         msg_server.set_last_pkg_sucesfully_received(pkg_type3[4])
                         msg_server.set_HEAD()
                         pkg_type4 = msg_server.make_pkg()
-                        print(counter)
                         com1.sendData(pkg_type4); time.sleep(.1)
                         counter += 1
                         img_received_bin += payload_from_pkg_type3
@@ -80,7 +75,21 @@ def main():
                         pkg_type6 = msg_server.make_pkg()
                         com1.sendData(pkg_type6); time.sleep(.1)
                     break
-        
+            while com1.rx.getIsEmpty():
+                if timer2.is_timeout():
+                    msg_server.set_msg_type(5)
+                    msg_server.set_HEAD()
+                    pkg_type5 = msg_server.make_pkg()
+                    com1.sendData(pkg_type5); print("Timeout. Comunição encerrada"); com1.disable(); return
+                if timer1.is_timeout() and entered_1st_while:
+                    msg_server.set_msg_type(4)
+                    msg_server.set_last_pkg_sucesfully_received(pkg_type3[4])
+                    msg_server.set_HEAD()
+                    pkg_type4 = msg_server.make_pkg()
+                    com1.sendData(pkg_type4); time.sleep(.1)
+                    timer1.reset()
+
+
         print(img_received_bin)
         img_received_name = 'projeto4/img/recebido.PNG'
         f = open(img_received_name, 'wb')
