@@ -13,19 +13,19 @@ import numpy as np
 
 #   python -m serial.tools.list_ports (communication port label)
 
-serial_name = "/dev/tty.usbmodem1411"
+serial_name = '/dev/cu.usbmodem1301'
 img = 'projeto4/img/batman.png'
 msg_client = Message(img)
 verifier = Verifier(from_server=True)
 
 
 def main():
+    com1 = enlace(serial_name); com1.enable(); print("Abriu a comunicação")
     try:
         msg_client.set_msg_type(1)
         msg_client.set_HEAD()
         pkg_handshake_from_client = msg_client.make_pkg()
 
-        com1 = enlace(serial_name); com1.enable(); print("Abriu a comunicação")
 
         begin = False
         while not(begin):

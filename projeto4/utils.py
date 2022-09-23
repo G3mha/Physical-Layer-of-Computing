@@ -4,28 +4,30 @@ from math import ceil
 
 
 class Message():
-    def __init__(self, img):
+    def __init__(self, img=None):
         self.EOP = b'\xAA\xBB\xCC\xDD'
-        if img != 'no_img':
+        self.list_payload = []
+        if not(img == None):
             self.img = img
             self.make_list_payload()
 
     def make_list_payload(self):
-        img_bin = open(self.img,'rb').read()
-        img_size = len(img_bin)
-        pkgs = ceil(img_size/114)
-        payloads = []
-        for i in range(pkgs):
-            if i == (pkgs-1):
-                payload = img_bin[114*i:img_size]
-                print('tamanho do ultimo payload ' , len(payload))
-            else:
-                payload = img_bin[114*i:(i+1)*114]
-                print('tamanho dos payloads intermediarios : ',len(payload))
-            payloads.append(payload)
-        self.list_payload = payloads
-        self.amount_of_pkgs = len(payloads)
-        self.current_pkg_number = 0
+        if not(self.img == None):
+            img_bin = open(self.img,'rb').read()
+            img_size = len(img_bin)
+            pkgs = ceil(img_size/114)
+            payloads = []
+            for i in range(pkgs):
+                if i == (pkgs-1):
+                    payload = img_bin[114*i:img_size]
+                    print('tamanho do ultimo payload ' , len(payload))
+                else:
+                    payload = img_bin[114*i:(i+1)*114]
+                    print('tamanho dos payloads intermediarios : ',len(payload))
+                payloads.append(payload)
+            self.list_payload = payloads
+            self.amount_of_pkgs = len(payloads)
+        
 
     def set_msg_type(self, msg_type):
         self.msg_type = msg_type
@@ -33,9 +35,10 @@ class Message():
     def set_last_pkg_sucesfully_received(self, last_pkg_sucesfully_received):
         self.last_pkg_sucesfully_received = last_pkg_sucesfully_received
 
-    def set_HEAD(self, current_pkg_number=0, expected_pkg_number=0):
+    def set_HEAD(self, current_pkg_number=1, expected_pkg_number=1):
         self.current_pkg_number = current_pkg_number
-        self.current_payload_size = self.list_payload[current_pkg_number-1]
+        if self.list_payload != []:
+            self.current_payload_size = len(self.list_payload[self.current_pkg_number-1])
 
         if self.msg_type == 1: # handshake from client to server (question)
             server_ID = 9 # server ID attached to message
@@ -59,7 +62,9 @@ class Message():
         self.HEAD = bytes(list_HEAD)
 
     def make_pkg(self):
-        payload = self.list_payload[self.current_pkg_number]
+        payload = b''
+        if self.msg_type == 3:
+            payload = self.list_payload[self.current_pkg_number]
         pkg = self.HEAD + payload + self.EOP
         return np.asarray(pkg)
     
@@ -121,7 +126,13 @@ class Timer():
         self.start_time = time.time()
 
 
-
+def get_pkg_type3(com1):
+    HEAD_type3, _ = com1.getData(10)
+    current_payload_size = int(HEAD_type3[5])
+    payload_type3, _ = com1.getData(current_payload_size)
+    EOP_type3, _ = com1.getData(4)
+    pkg_type3 = HEAD_type3 + payload_type3 + EOP_type3
+    return pkg_type3, payload_type3
 
 
 
@@ -136,19 +147,6 @@ def verifica_ordem(recebido, numero_do_pacote_atual):
         return True
     return False
 
-
-def reagrupamento(lista_dos_payloads,tamanho_total_da_info, numero_de_pacotes_recebidos):
-    """
-    Nessa função iremos juntar os payloads dos pacotes recebidos e verificar se o número de pacotes recebidos foi correto 
-    """
-    info_total = ''
-    for payload in lista_dos_payloads:
-        info_total += payload
-    
-    if numero_de_pacotes_recebidos == tamanho_total_da_info:
-        return True
-    else:
-        return False
         
 def tratar_pacote_recebido(pacote):
     tamanho_pacote = len(pacote)
@@ -160,10 +158,4 @@ def tratar_pacote_recebido(pacote):
     eop = pacote[10+tamanho:len(pacote)]
 
     return head,payload,eop
-    
 
-def retirando_informacoes_do_head(head):
-    tamanho_do_payload = head[2]
-    numero_do_pacote = head[3]
-    numero_total_de_pacotes = head[4]
-    return tamanho_do_payload,numero_do_pacote, numero_total_de_pacotes
