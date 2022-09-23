@@ -17,7 +17,7 @@ import numpy as np
 serial_name = '/dev/cu.usbmodem1201'
 msg_server = Message()
 verifier = Verifier(from_server=False)
-
+logs = Log_file('Server', 1)
 
 def main():
     com1 = enlace(serial_name); com1.enable(); print("Abriu a comunicação")

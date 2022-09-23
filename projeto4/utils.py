@@ -3,6 +3,19 @@ import numpy as np
 from math import ceil
 
 
+class Log_file():
+    def __init__(self, server_or_client, case_number):
+        self.log_filename = f'logs/{server_or_client}{case_number}.txt'
+    
+    def save_log(self, is_envio, msg_type, pkg_size, pkg_number, amount_of_pkgs):
+        self.log_file = open(self.log_filename, 'w')
+        envio_or_receb = 'receb'
+        if is_envio:
+            envio_or_receb = 'envio'
+        moment_time = time.time()
+        self.log_file.write(f'{moment_time} / {envio_or_receb} / {msg_type} / {pkg_size} / {pkg_number} / {amount_of_pkgs}')
+        self.log_file.close()
+
 class Message():
     def __init__(self, img=None):
         self.EOP = b'\xAA\xBB\xCC\xDD'
@@ -169,4 +182,3 @@ def tratar_pacote_recebido(pacote):
     eop = pacote[10+tamanho:len(pacote)]
 
     return head,payload,eop
-

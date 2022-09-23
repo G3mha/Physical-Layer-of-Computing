@@ -18,6 +18,7 @@ serial_name = '/dev/cu.usbmodem1301'
 img = 'projeto4/img/batman.png'
 msg_client = Message(img)
 verifier = Verifier(from_server=True)
+logs = Log_file('Client', 1)
 
 
 def main():
