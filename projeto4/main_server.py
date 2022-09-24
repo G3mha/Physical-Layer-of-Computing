@@ -49,24 +49,9 @@ def main():
             timer1 = Timer(2)
             timer2 = Timer(20)
             pkg_type3 = None
-            entered_2nd_while = False
-            while com1.rx.getIsEmpty():
-                if timer2.is_timeout():
-                    msg_server.set_msg_type(5)
-                    msg_server.set_HEAD()
-                    pkg_type5 = msg_server.make_pkg()
-                    com1.sendData(pkg_type5); print("Timeout. Comunição encerrada")
-                    logs.save_log(is_envio=True, msg_type=5); com1.disable(); return
-                if timer1.is_timeout() and entered_2nd_while:
-                    msg_server.set_msg_type(4)
-                    msg_server.set_last_pkg_sucesfully_received(pkg_type3[4])
-                    msg_server.set_HEAD()
-                    pkg_type4 = msg_server.make_pkg()
-                    com1.sendData(pkg_type4); time.sleep(.1)
-                    logs.save_log(is_envio=True, msg_type=4)
-                    timer1.reset()
+            entered_1st_while = False
             while not(com1.rx.getIsEmpty()):
-                entered_2nd_while = True
+                entered_1st_while = True
                 pkg_type3, payload_from_pkg_type3, total_size_pkg, pkg_number = get_pkg_type3(com1)
                 pkg_is_type3 = verifier.verify_pkg_type3(pkg_type3)
                 if not(pkg_is_type3):
@@ -79,8 +64,8 @@ def main():
                     logs.save_log(is_envio=False, msg_type=3, pkg_size=total_size_pkg, pkg_number=pkg_number, amount_of_pkgs=number_of_packages)
                     eop_is_correct = verifier.verify_EOP(pkg_type3)
                     order_is_correct = (counter == pkg_type3[4])
-                    print(f'EOP:{eop_is_correct}, Order: {order_is_correct}')
                     if eop_is_correct and order_is_correct:
+                        print(f'EOP:{eop_is_correct}, Order: {order_is_correct}')
                         msg_server.set_msg_type(4)
                         msg_server.set_last_pkg_sucesfully_received(pkg_type3[4])
                         msg_server.set_HEAD()
@@ -96,6 +81,21 @@ def main():
                         com1.sendData(pkg_type6); time.sleep(.1)
                         logs.save_log(is_envio=True, msg_type=6)
                     break
+            while com1.rx.getIsEmpty():
+                if timer2.is_timeout():
+                    msg_server.set_msg_type(5)
+                    msg_server.set_HEAD()
+                    pkg_type5 = msg_server.make_pkg()
+                    com1.sendData(pkg_type5); print("Timeout. Comunição encerrada")
+                    logs.save_log(is_envio=True, msg_type=5); com1.disable(); return
+                if timer1.is_timeout() and entered_1st_while:
+                    msg_server.set_msg_type(4)
+                    msg_server.set_last_pkg_sucesfully_received(pkg_type3[4])
+                    msg_server.set_HEAD()
+                    pkg_type4 = msg_server.make_pkg()
+                    com1.sendData(pkg_type4); time.sleep(.1)
+                    logs.save_log(is_envio=True, msg_type=4)
+                    timer1.reset()
 
 
         print(img_received_bin)

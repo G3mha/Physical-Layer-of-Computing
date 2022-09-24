@@ -55,6 +55,7 @@ def main():
         number_of_packages = msg_client.get_amount_of_pkgs()
         counter = 1
         while counter <= number_of_packages:
+            entered_1st_while = False
             msg_client.set_msg_type(3)
             msg_client.set_HEAD(current_pkg_number=counter)
             # if counter in list_pairs:
@@ -65,22 +66,9 @@ def main():
             logs.save_log(is_envio=True, msg_type=3, pkg_size=(brute_pkg[5]+14), pkg_number=(brute_pkg[4]), amount_of_pkgs=number_of_packages)
             timer1 = Timer(5)
             timer2 = Timer(20)
-            entered_2nd_while = False
             pkg_type4_5_or_6 = None
-            while com1.rx.getIsEmpty():
-                if timer1.is_timeout() and entered_2nd_while:
-                    com1.sendData(pkg_type3); time.sleep(.1)
-                    brute_pkg = msg_client.get_brute_pkg()
-                    logs.save_log(is_envio=True, msg_type=3, pkg_size=(brute_pkg[5]+14), pkg_number=(brute_pkg[4]), amount_of_pkgs=number_of_packages)
-                    timer1.reset()
-                if timer2.is_timeout():
-                    msg_client.set_msg_type(5)
-                    msg_client.set_HEAD()
-                    pkg_type5 = msg_client.make_pkg()
-                    com1.sendData(pkg_type5); print("Timeout. Comunição encerrada")
-                    logs.save_log(is_envio=True, msg_type=5); com1.disable(); return
             while not(com1.rx.getIsEmpty()):
-                entered_2nd_while = True
+                entered_1st_while = True
                 pkg_type4_5_or_6, _ = com1.getData(14)
                 pkg_is_correct_type4 = verifier.verify_pkg_type4(pkg_type4_5_or_6)
                 if pkg_is_correct_type4:
@@ -104,6 +92,18 @@ def main():
                     logs.save_log(is_envio=True, msg_type=3, pkg_size=(brute_pkg[5]+14), pkg_number=(brute_pkg[4]), amount_of_pkgs=number_of_packages)
                     timer1.reset()
                     timer2.reset()
+            while com1.rx.getIsEmpty():
+                if timer1.is_timeout() and entered_1st_while:
+                    com1.sendData(pkg_type3); time.sleep(.1)
+                    brute_pkg = msg_client.get_brute_pkg()
+                    logs.save_log(is_envio=True, msg_type=3, pkg_size=(brute_pkg[5]+14), pkg_number=(brute_pkg[4]), amount_of_pkgs=number_of_packages)
+                    timer1.reset()
+                if timer2.is_timeout():
+                    msg_client.set_msg_type(5)
+                    msg_client.set_HEAD()
+                    pkg_type5 = msg_client.make_pkg()
+                    com1.sendData(pkg_type5); print("Timeout. Comunição encerrada")
+                    logs.save_log(is_envio=True, msg_type=5); com1.disable(); return
 
 
         print('Transmissão bem sucedida'); com1.disable()
