@@ -33,11 +33,13 @@ def main():
         while idle:
             if not(com1.rx.getIsEmpty()):
                 handshake_from_client, _ = com1.getData(14)
+                logs.save_log(is_envio=False, msg_type=1)
                 handshake_is_correct = verifier.verify_handshake(handshake_from_client)
                 if handshake_is_correct:
                     print("Handshake está correto."); idle = False
             time.sleep(1)
         com1.sendData(pkg_handshake_from_server); time.sleep(.1)
+        logs.save_log(is_envio=True, msg_type=2)
         
         img_received_bin = b''
         
@@ -47,17 +49,34 @@ def main():
             timer1 = Timer(2)
             timer2 = Timer(20)
             pkg_type3 = None
-            entered_1st_while = False
+            entered_2nd_while = False
+            while com1.rx.getIsEmpty():
+                if timer2.is_timeout():
+                    msg_server.set_msg_type(5)
+                    msg_server.set_HEAD()
+                    pkg_type5 = msg_server.make_pkg()
+                    com1.sendData(pkg_type5); print("Timeout. Comunição encerrada")
+                    logs.save_log(is_envio=True, msg_type=5); com1.disable(); return
+                if timer1.is_timeout() and entered_2nd_while:
+                    msg_server.set_msg_type(4)
+                    msg_server.set_last_pkg_sucesfully_received(pkg_type3[4])
+                    msg_server.set_HEAD()
+                    pkg_type4 = msg_server.make_pkg()
+                    com1.sendData(pkg_type4); time.sleep(.1)
+                    logs.save_log(is_envio=True, msg_type=4)
+                    timer1.reset()
             while not(com1.rx.getIsEmpty()):
-                entered_1st_while = True
-                pkg_type3, payload_from_pkg_type3 = get_pkg_type3(com1)
+                entered_2nd_while = True
+                pkg_type3, payload_from_pkg_type3, total_size_pkg, pkg_number = get_pkg_type3(com1)
                 pkg_is_type3 = verifier.verify_pkg_type3(pkg_type3)
                 if not(pkg_is_type3):
                     time.sleep(1)
                     pkg_is_correct_type5 = verifier.verify_pkg_type5(pkg_type3)
                     if pkg_is_correct_type5:
+                        logs.save_log(is_envio=False, msg_type=5)
                         print('Client deu timeout.'); com1.disable(); return
                 if pkg_is_type3:
+                    logs.save_log(is_envio=False, msg_type=3, pkg_size=total_size_pkg, pkg_number=pkg_number, amount_of_pkgs=number_of_packages)
                     eop_is_correct = verifier.verify_EOP(pkg_type3)
                     order_is_correct = (counter == pkg_type3[4])
                     print(f'EOP:{eop_is_correct}, Order: {order_is_correct}')
@@ -67,6 +86,7 @@ def main():
                         msg_server.set_HEAD()
                         pkg_type4 = msg_server.make_pkg()
                         com1.sendData(pkg_type4); time.sleep(.1)
+                        logs.save_log(is_envio=True, msg_type=4)
                         counter += 1
                         img_received_bin += payload_from_pkg_type3
                     if not(eop_is_correct) or not(order_is_correct):
@@ -74,20 +94,8 @@ def main():
                         msg_server.set_HEAD(expected_pkg_number=counter)
                         pkg_type6 = msg_server.make_pkg()
                         com1.sendData(pkg_type6); time.sleep(.1)
+                        logs.save_log(is_envio=True, msg_type=6)
                     break
-            while com1.rx.getIsEmpty():
-                if timer2.is_timeout():
-                    msg_server.set_msg_type(5)
-                    msg_server.set_HEAD()
-                    pkg_type5 = msg_server.make_pkg()
-                    com1.sendData(pkg_type5); print("Timeout. Comunição encerrada"); com1.disable(); return
-                if timer1.is_timeout() and entered_1st_while:
-                    msg_server.set_msg_type(4)
-                    msg_server.set_last_pkg_sucesfully_received(pkg_type3[4])
-                    msg_server.set_HEAD()
-                    pkg_type4 = msg_server.make_pkg()
-                    com1.sendData(pkg_type4); time.sleep(.1)
-                    timer1.reset()
 
 
         print(img_received_bin)

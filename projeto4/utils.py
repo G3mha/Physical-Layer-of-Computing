@@ -1,19 +1,24 @@
 import time
 import numpy as np
 from math import ceil
+from datetime import datetime
 
 
 class Log_file():
     def __init__(self, server_or_client, case_number):
-        self.log_filename = f'logs/{server_or_client}{case_number}.txt'
+        self.log_filename = f'projeto4/logs/{server_or_client}{case_number}.txt'
     
-    def save_log(self, is_envio, msg_type, pkg_size, pkg_number, amount_of_pkgs):
-        self.log_file = open(self.log_filename, 'w')
+    def save_log(self, is_envio, msg_type, pkg_size=14, pkg_number=None, amount_of_pkgs=None):
+        self.log_file = open(self.log_filename, 'a')
+        now = datetime.now()
+        moment_time = now.strftime("%d/%m/%Y %H:%M:%S")
         envio_or_receb = 'receb'
         if is_envio:
             envio_or_receb = 'envio'
-        moment_time = time.time()
-        self.log_file.write(f'{moment_time} / {envio_or_receb} / {msg_type} / {pkg_size} / {pkg_number} / {amount_of_pkgs}')
+        log_line= f'{moment_time} / {envio_or_receb} / {msg_type} / {pkg_size}'
+        if msg_type == 3:
+            log_line = log_line + f' / {pkg_number} / {amount_of_pkgs}'
+        self.log_file.write(log_line+'\n')
         self.log_file.close()
 
 class Message():
@@ -79,7 +84,11 @@ class Message():
         if self.msg_type == 3:
             payload = self.list_payload[self.current_pkg_number-1]
         pkg = self.HEAD + payload + self.EOP
+        self.brute_pkg = pkg
         return np.asarray(pkg)
+
+    def get_brute_pkg(self):
+        return self.brute_pkg
 
     def get_amount_of_pkgs(self):
         return self.amount_of_pkgs
@@ -156,29 +165,5 @@ def get_pkg_type3(com1):
     payload_type3, _ = com1.getData(current_payload_size)
     EOP_type3, _ = com1.getData(4)
     pkg_type3 = HEAD_type3 + payload_type3 + EOP_type3
-    return pkg_type3, payload_type3
-
-
-
-def verifica_ordem(recebido, numero_do_pacote_atual):
-    """
-    Como combinado o byte que diz o número do pacote é o de número 4 do head ,
-    função que será utilizada pelo server
-    """
-    head = recebido[0:11]
-    numero_do_pacote = head[3]
-    if numero_do_pacote == numero_do_pacote_atual:
-        return True
-    return False
-
-        
-def tratar_pacote_recebido(pacote):
-    tamanho_pacote = len(pacote)
-    head = pacote[0:10]
-
-    tamanho = head[2]
-    payload = pacote[10:10+tamanho]
-
-    eop = pacote[10+tamanho:len(pacote)]
-
-    return head,payload,eop
+    total_size_pkg = 10 + current_payload_size + 4
+    return pkg_type3, payload_type3, total_size_pkg, pkg_type3[4]

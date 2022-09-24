@@ -35,12 +35,14 @@ def main():
             com1.rx.clearBuffer()
 
             com1.sendData(pkg_handshake_from_client); time.sleep(.1) # handshake
+            logs.save_log(is_envio=True, msg_type=1)
             time.sleep(5)
 
             if com1.rx.getIsEmpty():
                 continue
 
             handshake_from_server, _ = com1.getData(14)
+            logs.save_log(is_envio=False, msg_type=2)
             handshake_is_correct = verifier.verify_handshake(handshake_from_server)
             if handshake_is_correct:
                 print("Handshake está correto."); begin = True
@@ -52,36 +54,49 @@ def main():
             msg_client.set_HEAD(current_pkg_number=counter)
             pkg_type3 = msg_client.make_pkg()
             com1.sendData(pkg_type3); time.sleep(.1)
+            brute_pkg = msg_client.get_brute_pkg()
+            logs.save_log(is_envio=True, msg_type=3, pkg_size=(brute_pkg[5]+14), pkg_number=(brute_pkg[4]), amount_of_pkgs=number_of_packages)
+            print('#######################')
             timer1 = Timer(5)
             timer2 = Timer(20)
+            entered_2nd_while = False
             pkg_type4_5_or_6 = None
-            while not(com1.rx.getIsEmpty()):
-                pkg_type4_5_or_6, _ = com1.getData(14)
-                pkg_is_correct_type4 = verifier.verify_pkg_type4(pkg_type4_5_or_6)
-                if pkg_is_correct_type4:
-                    counter += 1
-                    break
-                pkg_is_correct_type5 = verifier.verify_pkg_type5(pkg_type4_5_or_6)
-                if pkg_is_correct_type5:
-                    print('Server deu timeout.'); com1.disable(); return
-                pkg_is_correct_type6 = verifier.verify_pkg_type5(pkg_type4_5_or_6)
-                if pkg_is_correct_type6:
-                    counter = pkg_type4_5_or_6[6]
-                    msg_client.set_msg_type(3)
-                    msg_client.set_HEAD(current_pkg_number=counter)
-                    pkg_type3 = msg_client.make_pkg()
-                    com1.sendData(pkg_type3); time.sleep(.1)
-                    timer1.reset()
-                    timer2.reset()
             while com1.rx.getIsEmpty():
-                if timer1.is_timeout():
+                if timer1.is_timeout() and entered_2nd_while:
                     com1.sendData(pkg_type3); time.sleep(.1)
+                    brute_pkg = msg_client.get_brute_pkg()
+                    logs.save_log(is_envio=True, msg_type=3, pkg_size=(brute_pkg[5]+14), pkg_number=(brute_pkg[4]), amount_of_pkgs=number_of_packages)
                     timer1.reset()
                 if timer2.is_timeout():
                     msg_client.set_msg_type(5)
                     msg_client.set_HEAD()
                     pkg_type5 = msg_client.make_pkg()
-                    com1.sendData(pkg_type5); print("Timeout. Comunição encerrada"); com1.disable(); return
+                    com1.sendData(pkg_type5); print("Timeout. Comunição encerrada")
+                    logs.save_log(is_envio=True, msg_type=5); com1.disable(); return
+            while not(com1.rx.getIsEmpty()):
+                entered_2nd_while = True
+                pkg_type4_5_or_6, _ = com1.getData(14)
+                pkg_is_correct_type4 = verifier.verify_pkg_type4(pkg_type4_5_or_6)
+                if pkg_is_correct_type4:
+                    logs.save_log(is_envio=False, msg_type=4)
+                    counter += 1
+                    break
+                pkg_is_correct_type5 = verifier.verify_pkg_type5(pkg_type4_5_or_6)
+                if pkg_is_correct_type5:
+                    logs.save_log(is_envio=False, msg_type=5)
+                    print('Server deu timeout.'); com1.disable(); return
+                pkg_is_correct_type6 = verifier.verify_pkg_type5(pkg_type4_5_or_6)
+                if pkg_is_correct_type6:
+                    logs.save_log(is_envio=False, msg_type=6)
+                    counter = pkg_type4_5_or_6[6]
+                    msg_client.set_msg_type(3)
+                    msg_client.set_HEAD(current_pkg_number=counter)
+                    pkg_type3 = msg_client.make_pkg()
+                    com1.sendData(pkg_type3); time.sleep(.1)
+                    brute_pkg = msg_client.get_brute_pkg()
+                    logs.save_log(is_envio=True, msg_type=3, pkg_size=(brute_pkg[5]+14), pkg_number=(brute_pkg[4]), amount_of_pkgs=number_of_packages)
+                    timer1.reset()
+                    timer2.reset()
 
 
         print('Transmissão bem sucedida'); com1.disable()
