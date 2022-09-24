@@ -18,7 +18,7 @@ serial_name = '/dev/cu.usbmodem1301'
 img = 'projeto4/img/batman.png'
 msg_client = Message(img)
 verifier = Verifier(from_server=True)
-logs = Log_file('Client', 1)
+logs = Log_file('Client', 4)
 
 
 def main():
@@ -47,16 +47,22 @@ def main():
             if handshake_is_correct:
                 print("Handshake está correto."); begin = True
 
-        counter = 1
+        # list_pairs = []
+        # for i in range(0,126):
+        #     if i%2 == 0:
+        #         list_pairs.append(i)
+
         number_of_packages = msg_client.get_amount_of_pkgs()
+        counter = 1
         while counter <= number_of_packages:
             msg_client.set_msg_type(3)
             msg_client.set_HEAD(current_pkg_number=counter)
+            # if counter in list_pairs:
+            #     msg_client.set_HEAD(current_pkg_number=1); list_pairs.remove(counter)
             pkg_type3 = msg_client.make_pkg()
             com1.sendData(pkg_type3); time.sleep(.1)
             brute_pkg = msg_client.get_brute_pkg()
             logs.save_log(is_envio=True, msg_type=3, pkg_size=(brute_pkg[5]+14), pkg_number=(brute_pkg[4]), amount_of_pkgs=number_of_packages)
-            print('#######################')
             timer1 = Timer(5)
             timer2 = Timer(20)
             entered_2nd_while = False
@@ -79,6 +85,7 @@ def main():
                 pkg_is_correct_type4 = verifier.verify_pkg_type4(pkg_type4_5_or_6)
                 if pkg_is_correct_type4:
                     logs.save_log(is_envio=False, msg_type=4)
+                    print(f'Pacote {counter} enviado com sucesso')
                     counter += 1
                     break
                 pkg_is_correct_type5 = verifier.verify_pkg_type5(pkg_type4_5_or_6)
