@@ -2,7 +2,7 @@
 # Camada Física da Computação
 # Enricco Gemha
 # 15/09/2022
-# Projeto 5
+# Projeto 4
 ####################################################
 
 
@@ -11,7 +11,6 @@ from enlace import *
 from utils import *
 import time
 import numpy as np
-from crc import CrcCalculator, Crc16
 
 #   python -m serial.tools.list_ports (communication port label)
 
@@ -25,7 +24,6 @@ logs = Log_file('Client', 4)
 def main():
     com1 = enlace(serial_name); com1.enable(); print("Abriu a comunicação")
     try:
-        CRC_calculator = CrcCalculator(Crc16.CCITT)
         msg_client.set_msg_type(1)
         msg_client.set_HEAD()
         pkg_handshake_from_client = msg_client.make_pkg()

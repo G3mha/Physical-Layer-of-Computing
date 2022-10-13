@@ -2,14 +2,13 @@ import time
 import numpy as np
 from math import ceil
 from datetime import datetime
-from crc import CrcCalculator, Crc16
 
 
 class Log_file():
     def __init__(self, server_or_client, case_number):
         self.log_filename = f'projeto4/logs/{server_or_client}{case_number}.txt'
     
-    def save_log(self, is_envio, msg_type, pkg_size=14, pkg_number=None, amount_of_pkgs=None, crc16=None):
+    def save_log(self, is_envio, msg_type, pkg_size=14, pkg_number=None, amount_of_pkgs=None):
         self.log_file = open(self.log_filename, 'a')
         now = datetime.now()
         moment_time = now.strftime("%d/%m/%Y %H:%M:%S")
@@ -18,7 +17,7 @@ class Log_file():
             envio_or_receb = 'envio'
         log_line= f'{moment_time} / {envio_or_receb} / {msg_type} / {pkg_size}'
         if msg_type == 3:
-            log_line = log_line + f' / {pkg_number} / {amount_of_pkgs} / {crc16}'
+            log_line = log_line + f' / {pkg_number} / {amount_of_pkgs}'
         self.log_file.write(log_line+'\n')
         self.log_file.close()
 
@@ -26,8 +25,6 @@ class Message():
     def __init__(self, img=None):
         self.EOP = b'\xAA\xBB\xCC\xDD'
         self.list_payload = []
-        self.CRC_calculator = CrcCalculator(Crc16.CCITT)
-        self.checksum = None
         if not(img == None):
             self.img = img
             self.make_list_payload()
@@ -49,6 +46,7 @@ class Message():
             self.list_payload = payloads
             self.amount_of_pkgs = len(self.list_payload)
         
+
     def set_msg_type(self, msg_type):
         self.msg_type = msg_type
 
@@ -68,9 +66,7 @@ class Message():
             list_HEAD = [self.msg_type,0,0,0,0,0,0,0,0,0]
 
         if self.msg_type == 3: # data from client to server (payload not 0)
-            payload = self.list_payload[self.current_pkg_number-1]
-            self.checksum = self.CRC_calculator.calculate_checksum(payload)
-            list_HEAD = [self.msg_type,0,0,self.amount_of_pkgs,current_pkg_number,self.current_payload_size,0,0]
+            list_HEAD = [self.msg_type,0,0,self.amount_of_pkgs,current_pkg_number,self.current_payload_size,0,0,0,0]
 
         if self.msg_type == 4: # payload check from server to client (sucessfully received)
             list_HEAD = [self.msg_type,0,0,0,0,0,0,self.last_pkg_sucesfully_received,0,0]
@@ -82,14 +78,11 @@ class Message():
             list_HEAD = [self.msg_type,0,0,0,0,0,expected_pkg_number,0,0,0]
 
         self.HEAD = bytes(list_HEAD)
-        if self.msg_type == 3:
-            self.HEAD = self.HEAD + self.checksum.to_bytes(2, 'big')
 
     def make_pkg(self):
         payload = b''
         if self.msg_type == 3:
             payload = self.list_payload[self.current_pkg_number-1]
-            
         pkg = self.HEAD + payload + self.EOP
         self.brute_pkg = pkg
         return np.asarray(pkg)
@@ -173,5 +166,4 @@ def get_pkg_type3(com1):
     EOP_type3, _ = com1.getData(4)
     pkg_type3 = HEAD_type3 + payload_type3 + EOP_type3
     total_size_pkg = 10 + current_payload_size + 4
-    checksum = HEAD_type3[8:10]
-    return pkg_type3, payload_type3, total_size_pkg, pkg_type3[4], checksum
+    return pkg_type3, payload_type3, total_size_pkg, pkg_type3[4]
