@@ -69,21 +69,24 @@ def main():
             timer1 = Timer(5)
             timer2 = Timer(20)
             pkg_type4_5_or_6 = None
+            waiting_for_resend = False
             while not(com1.rx.getIsEmpty()):
                 entered_1st_while = True
                 pkg_type4_5_or_6, _ = com1.getData(14)
                 pkg_is_correct_type4 = verifier.verify_pkg_type4(pkg_type4_5_or_6)
+                pkg_is_correct_type5 = verifier.verify_pkg_type5(pkg_type4_5_or_6)
+                pkg_is_correct_type6 = verifier.verify_pkg_type5(pkg_type4_5_or_6)
                 if pkg_is_correct_type4:
+                    if pkg_type4_5_or_6[7] != counter:
+                        counter = pkg_type4_5_or_6[7] - 1
+                    counter += 1
                     logs.save_log(is_envio=False, msg_type=4)
                     print(f'Pacote {counter} enviado com sucesso')
-                    counter += 1
                     break
-                pkg_is_correct_type5 = verifier.verify_pkg_type5(pkg_type4_5_or_6)
-                if pkg_is_correct_type5:
+                if pkg_is_correct_type5 and not(pkg_is_correct_type4) and not(pkg_is_correct_type6):
                     logs.save_log(is_envio=False, msg_type=5)
                     print('Server deu timeout.'); com1.disable(); return
-                pkg_is_correct_type6 = verifier.verify_pkg_type5(pkg_type4_5_or_6)
-                if pkg_is_correct_type6:
+                if pkg_is_correct_type6 and not(pkg_is_correct_type5) and not(pkg_is_correct_type4):
                     logs.save_log(is_envio=False, msg_type=6)
                     counter = pkg_type4_5_or_6[6]
                     msg_client.set_msg_type(3)
@@ -94,6 +97,8 @@ def main():
                     logs.save_log(is_envio=True, msg_type=3, pkg_size=(brute_pkg[5]+14), pkg_number=(brute_pkg[4]), amount_of_pkgs=number_of_packages)
                     timer1.reset()
                     timer2.reset()
+            if counter == number_of_packages + 1:
+                break
             while com1.rx.getIsEmpty():
                 if timer1.is_timeout() and entered_1st_while:
                     com1.sendData(pkg_type3); time.sleep(.1)

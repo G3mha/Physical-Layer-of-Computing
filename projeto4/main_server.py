@@ -63,7 +63,7 @@ def main():
                         logs.save_log(is_envio=False, msg_type=5)
                         print('Client deu timeout.'); com1.disable(); return
                 if pkg_is_type3:
-                    crc_check = CRC_calculator.verify_checksum(payload_from_pkg_type3, int.from_bytes(checksum, "big"))
+                    crc_check = CRC_calculator.verify_checksum(payload_from_pkg_type3, int.from_bytes(checksum, 'big'))
                     logs.save_log(is_envio=False, msg_type=3, pkg_size=total_size_pkg, pkg_number=pkg_number, amount_of_pkgs=number_of_packages, crc16=checksum)
                     eop_is_correct = verifier.verify_EOP(pkg_type3)
                     order_is_correct = (counter == pkg_type3[4])
