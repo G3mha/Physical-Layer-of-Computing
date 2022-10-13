@@ -14,7 +14,7 @@ import numpy as np
 
 #   python -m serial.tools.list_ports (communication port label)
 
-serial_name = '/dev/cu.usbmodem1301'
+serial_name = '/dev/ttyACM1'
 img = 'projeto4/img/batman.png'
 msg_client = Message(img)
 verifier = Verifier(from_server=True)

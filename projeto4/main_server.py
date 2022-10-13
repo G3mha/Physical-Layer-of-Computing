@@ -14,7 +14,7 @@ import numpy as np
 
 # python -m serial.tools.list_ports (communication port label)
 
-serial_name = '/dev/cu.usbmodem1201'
+serial_name = '/dev/ttyACM0'
 msg_server = Message()
 verifier = Verifier(from_server=False)
 logs = Log_file('Server', 4)
@@ -65,7 +65,7 @@ def main():
                     eop_is_correct = verifier.verify_EOP(pkg_type3)
                     order_is_correct = (counter == pkg_type3[4])
                     if eop_is_correct and order_is_correct:
-                        print(f'EOP:{eop_is_correct}, Order: {order_is_correct}')
+                        print(f'Pacote {counter} recebido com sucesso')
                         msg_server.set_msg_type(4)
                         msg_server.set_last_pkg_sucesfully_received(pkg_type3[4])
                         msg_server.set_HEAD()
@@ -81,6 +81,8 @@ def main():
                         com1.sendData(pkg_type6); time.sleep(.1)
                         logs.save_log(is_envio=True, msg_type=6)
                     break
+            if counter == number_of_packages + 1:
+                break
             while com1.rx.getIsEmpty():
                 if timer2.is_timeout():
                     msg_server.set_msg_type(5)
@@ -98,8 +100,7 @@ def main():
                     timer1.reset()
 
 
-        print(img_received_bin)
-        img_received_name = 'projeto4/img/recebido.PNG'
+        img_received_name = 'projeto4/img/recebido.png'
         f = open(img_received_name, 'wb')
         f.write(img_received_bin)
         f.close()
