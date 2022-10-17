@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-int pinServer = 4; // number of the pin used by Arduino to receive data
+int pinServer = 7; // number of the pin used by Arduino to receive data
 float baudrate = 9600; // 9600 bits per second
 int msg;
 

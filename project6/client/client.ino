@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-int pinClient = 4; // number of the pin used by Arduino to send data
+int pinClient = 7; // number of the pin used by Arduino to send data
 byte msg = 0x0E; // letter E in hexadecimal
 int msgBinary = int(msg); // letter E converted from hex to binary
 float baudrate = 9600; // 9600 bits per second
