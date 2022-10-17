@@ -1,0 +1,5 @@
+{
+    "port": "/dev/tty.usbmodem1201",
+    "board": "arduino:avr:uno",
+    "programmer": "stk500"
+}
