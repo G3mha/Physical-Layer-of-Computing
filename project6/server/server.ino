@@ -17,7 +17,6 @@ float timeSkipper(float skipTime=1, float baudrate=9600, float T0=0){
 }
 
 void loop() {
-  // Inicia recebimento de dados
   if (digitalRead(pinServer) == 0){
     int amountOf1s = 0;
     timeSkipper(1.5); // positioning the moment to read bits in the middle of each bit (therefore the start bit is ignored)
