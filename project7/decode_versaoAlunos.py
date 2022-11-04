@@ -8,12 +8,6 @@ import matplotlib.pyplot as plt
 import time
 
 
-#funcao para transformas intensidade acustica em dB, caso queira usar
-def todB(s):
-    sdB = 10*np.log10(s)
-    return(sdB)
-
-
 def main():
 
     #*****************************instruções********************************
