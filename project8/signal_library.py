@@ -6,7 +6,7 @@ from scipy import signal as window
 
 
 
-class signalMeu:
+class signal_class:
     def __init__(self):
         self.init = 0
 
